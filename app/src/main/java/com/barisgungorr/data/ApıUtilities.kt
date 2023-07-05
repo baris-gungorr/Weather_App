@@ -1,6 +1,7 @@
 package com.barisgungorr.data
 
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 object ApıUtilities {
     private var retrofit:Retrofit? = null
@@ -12,9 +13,11 @@ object ApıUtilities {
         if (retrofit==null) {
 
 
-            retrofit =
+            retrofit =Retrofit.Builder().baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create()).build()
 
         }
+        return retrofit?.create(WeatherApı::class.java)
 
     }
 
