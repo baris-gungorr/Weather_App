@@ -1,4 +1,4 @@
-package com.barisgungorr.data
+package com.barisgungorr.service
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory

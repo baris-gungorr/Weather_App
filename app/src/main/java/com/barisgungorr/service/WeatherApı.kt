@@ -1,4 +1,4 @@
-package com.barisgungorr.data
+package com.barisgungorr.service
 
 
 import com.barisgungorr.model.WeatherModel

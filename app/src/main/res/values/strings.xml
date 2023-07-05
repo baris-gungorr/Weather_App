@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Weather_App</string>
+    <string name="max_temp">Max %1$.1f°</string>
+    <string name="min_temp">Min %1$.1f°</string>
+    <string name="current_temp">%1$.1f°</string>
+    <string name="humidity">%1$s%%</string>
+    <string name="temperature_f">%1$.1f°</string>
+    <string name="feels_like_temperature">%1$.1f°</string>
+    <string name="wind_speed">%1$s m/s</string>
 </resources>
