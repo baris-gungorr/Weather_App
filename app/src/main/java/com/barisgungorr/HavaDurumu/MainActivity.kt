@@ -27,16 +27,26 @@ import android.provider.Settings
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat.getCurrentLocation
+import androidx.core.location.LocationManagerCompat.isLocationEnabled
+import androidx.lifecycle.lifecycleScope
 import com.barisgungorr.service.WeatherApı
 import com.barisgungorr.weather_app.R
 import com.barisgungorr.weather_app.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Dispatcher
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
@@ -48,6 +58,7 @@ class MainActivity : AppCompatActivity() {
 
     private val apiKey = "c93b5071758719941ae4a9cec26c918f"
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -88,7 +99,7 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
-
+/*
     private fun getCityWeather(city:String) {
         binding.progressBar.visibility = View.VISIBLE
 
@@ -116,7 +127,33 @@ class MainActivity : AppCompatActivity() {
             }
         )
     }
+ */
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun getCityWeather(city: String) {
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    ApıUtilities.getApiInterface()?.getCityWeatherData(city, apiKey)?.execute()
+                }
+                if (response?.isSuccessful == true) {
+                    val body = response.body()
+                    body?.let {
+                        setData(it)
+                    }
+                } else {
+                    Toast.makeText(this@MainActivity, "Şehir bulunamadı!", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Bir hata oluştu!", Toast.LENGTH_LONG).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
+        }
+    }
+   /*
     private fun fetchCurrentLocationWeather(latitude:String,longitude:String) {
 
         ApıUtilities.getApiInterface()?.getCurrentWeatherData(latitude,longitude,apiKey)
@@ -140,6 +177,32 @@ class MainActivity : AppCompatActivity() {
 
             })
     }
+*/
+   private fun fetchCurrentLocationWeather(latitude: String, longitude: String) {
+       binding.progressBar.visibility = View.VISIBLE
+
+       lifecycleScope.launch {
+           try {
+               val response = withContext(Dispatchers.IO) {
+                   ApıUtilities.getApiInterface()?.getCurrentWeatherData(latitude, longitude, apiKey)?.execute()
+               }
+               if (response?.isSuccessful == true) {
+                   val body = response.body()
+                   body?.let {
+                       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                           setData(it)
+                       }
+                   }
+               } else {
+                   Toast.makeText(this@MainActivity, "Hava durumu verisi alınamadı!", Toast.LENGTH_LONG).show()
+               }
+           } catch (e: Exception) {
+               Toast.makeText(this@MainActivity, "Bir hata oluştu!", Toast.LENGTH_LONG).show()
+           } finally {
+               binding.progressBar.visibility = View.GONE
+           }
+       }
+   }
 
     private fun getCurrentLocation() {
 
@@ -251,14 +314,14 @@ class MainActivity : AppCompatActivity() {
             dateTime.text = currentDate.toString()
 
 
-             maxTemp.text="Max "+f2c(body?.main?.temp_max!!)+"°"
-
-             minTemp.text="Min "+f2c(body?.main?.temp_min!!)+"°"
-
-             temp.text=""+f2c(body?.main?.temp!!)+"°"
+             maxTemp.text = "Max ${f2c(body?.main?.temp_max!!)}°"
+             minTemp.text = "Min ${f2c(body?.main?.temp_min!!)}°"
+             temp.text = "${f2c(body?.main?.temp!!)}°"
 
 
-            weatherTitle.text = getTurkishWeather(body.weather[0].main)
+
+
+            weatherTitle.text =  getTurkishWeather(body.weather[0].main)
 
 
             sunriseValue.text = ts2td(body.sys.sunrise.toLong())
@@ -282,7 +345,7 @@ class MainActivity : AppCompatActivity() {
         }
         updateUI(body.weather[0].id)
     }
-    private fun getTurkishWeather(condition: String): String {
+    private  fun getTurkishWeather(condition: String): String {
         return when (condition) {
             "Clouds" -> "Bulutlu"
             "Clear" -> "Açık"
@@ -301,24 +364,20 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private  fun ts2td(ts:Long): String{
 
-            val localTime = ts.let {
-                Instant.ofEpochSecond(it)
-                    .atZone(ZoneId.of("GMT+03:00")) // Use GMT+03:00 timezone
-                    .toLocalTime()
-            }
+        val utcTime = SimpleDateFormat("HH:mm", Locale.getDefault())
+        utcTime.timeZone = TimeZone.getTimeZone("UTC")
 
-            val formattedTime = String.format("%02d:%02d", localTime.hour, localTime.minute)
+        val localTime = SimpleDateFormat("HH:mm", Locale.getDefault())
+        localTime.timeZone = TimeZone.getTimeZone("GMT+03:00")
 
-            return formattedTime
+        val date = utcTime.parse(utcTime.format(Date(ts * 1000)))
+        return localTime.format(date)
     }
 
     private fun f2c(t:Double):Double {
 
-        var intTemp=t
-
-        intTemp=intTemp.minus(273)
-
-        return intTemp.toBigDecimal().setScale(1,RoundingMode.UP).toDouble()
+        val celsiusTemp = t - 273.15
+        return celsiusTemp.toBigDecimal().setScale(1, RoundingMode.UP).toDouble()
     }
 
 
