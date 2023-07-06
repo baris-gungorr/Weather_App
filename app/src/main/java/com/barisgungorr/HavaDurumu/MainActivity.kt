@@ -17,7 +17,7 @@ import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.barisgungorr.service.ApıUtilities
 import com.barisgungorr.model.WeatherModel
-import com.barisgungorr.weather_app.databinding.ActivityMainBinding
+
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import retrofit2.Call
@@ -25,12 +25,16 @@ import retrofit2.Callback
 import retrofit2.Response
 import android.provider.Settings
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import com.barisgungorr.service.WeatherApı
+import com.barisgungorr.weather_app.R
+import com.barisgungorr.weather_app.databinding.ActivityMainBinding
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -49,6 +53,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         binding= DataBindingUtil.setContentView(this,R.layout.activity_main)
+
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
 
         fusedLocationProvider = LocationServices.getFusedLocationProviderClient(this)
 
@@ -75,9 +81,7 @@ class MainActivity : AppCompatActivity() {
 
                 return@setOnEditorActionListener false
 
-
             }
-
         }
         binding.currentLocation.setOnClickListener{
             getCurrentLocation()
@@ -104,21 +108,13 @@ class MainActivity : AppCompatActivity() {
                     else{
                         Toast.makeText(this@MainActivity,"Şehir bulunamadı!",Toast.LENGTH_LONG).show()
                         binding .progressBar.visibility = View.GONE
-
                     }
-
                 }
-
                 override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
                     TODO("Not yet implemented")
                 }
-
             }
-
-
         )
-
-
     }
 
     private fun fetchCurrentLocationWeather(latitude:String,longitude:String) {
@@ -138,14 +134,11 @@ class MainActivity : AppCompatActivity() {
 
                     }
                 }
-
                 override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
                     TODO("Not yet implemented")
                 }
 
-
             })
-
     }
 
     private fun getCurrentLocation() {
@@ -179,10 +172,7 @@ class MainActivity : AppCompatActivity() {
                              location.latitude.toString(),
                              location.longitude.toString()
                          )
-
-
                      }
-
                 }
         }
 
@@ -191,15 +181,12 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
 
         }
-
         }
 
         else{
 
             requestPermission()
-
         }
-
     }
 
 
@@ -211,7 +198,6 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.ACCESS_FINE_LOCATION),
             LOCATION_REQUEST_CODE
         )
-
     }
 
     private fun isLocationEnabled(): Boolean {
@@ -233,7 +219,6 @@ class MainActivity : AppCompatActivity() {
 
             return true
 
-
         }
         return false
 
@@ -253,27 +238,28 @@ class MainActivity : AppCompatActivity() {
             }
             else{
 
-
             }
-
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun setData(body:WeatherModel) {
 
-        binding.apply {
+         binding.apply {
             val currentDate = SimpleDateFormat("dd/MM/yyyy hh:mm", Locale("tr","TR")).format(Date())
 
             dateTime.text = currentDate.toString()
 
-            maxTemp.text = "Max " + f2c(body?.main?.temp_max!!)+ "°"
 
-            minTemp.text = "Min " + f2c(body?.main?.temp_min!!)+ "°"
+             maxTemp.text="Max "+f2c(body?.main?.temp_max!!)+"°"
 
-           temp.text = "" + f2c(body?.main?.temp!!)+ "°"
+             minTemp.text="Min "+f2c(body?.main?.temp_min!!)+"°"
 
-            weatherTitle.text = body.weather[0].main
+             temp.text=""+f2c(body?.main?.temp!!)+"°"
+
+
+            weatherTitle.text = getTurkishWeather(body.weather[0].main)
+
 
             sunriseValue.text = ts2td(body.sys.sunrise.toLong())
             sunsetValue.text = ts2td(body.sys.sunset.toLong())
@@ -281,13 +267,12 @@ class MainActivity : AppCompatActivity() {
             pressureValue.text = body.main.pressure.toString()
             humidityValue.text = body.main.humidity.toString()+"%"
 
-            tempFValue.text = ""+(f2c(body.main.temp).times(1.8)).plus(32)
-                .roundToInt()+ "°"
+            tempFValue.text = ""
 
 
             citySearch.setText(body.name)
+            temp.text = String.format("%.1f°C", f2c(body?.main?.temp!!))
 
-            feelsLike.text = "" + f2c(body.main.feels_like) + "°"
             windValue.text = body.wind.speed.toString()+"m/s"
             groundValue.text = body.main.grnd_level.toString()
             seaValue.text = body.main.sea_level.toString()
@@ -297,24 +282,45 @@ class MainActivity : AppCompatActivity() {
         }
         updateUI(body.weather[0].id)
     }
+    private fun getTurkishWeather(condition: String): String {
+        return when (condition) {
+            "Clouds" -> "Bulutlu"
+            "Clear" -> "Açık"
+            "Rain" -> "Yağmurlu"
+            "Snow" -> "Karlı"
+            "Thunderstorm" -> "Gök gürültülü"
+            "Drizzle" -> "Çisenti"
+            "Mist" -> "Sisli"
+            "Haze" -> "Dumanlı"
+            "Fog" -> "Sis"
+            else -> "Belirsiz"
+        }
+    }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
     private  fun ts2td(ts:Long): String{
-        val localTime = ts.let {
 
-            Instant.ofEpochSecond(it)
-                .atZone(ZoneId.systemDefault())
-                .toLocalTime()
-        }
-        return  localTime.toString()
+            val localTime = ts.let {
+                Instant.ofEpochSecond(it)
+                    .atZone(ZoneId.of("GMT+03:00")) // Use GMT+03:00 timezone
+                    .toLocalTime()
+            }
+
+            val formattedTime = String.format("%02d:%02d", localTime.hour, localTime.minute)
+
+            return formattedTime
     }
 
     private fun f2c(t:Double):Double {
-        val celciusTemp = (t - 32) * 5/9
 
-        return celciusTemp.toBigDecimal().setScale(1,RoundingMode.UP).toDouble()
+        var intTemp=t
+
+        intTemp=intTemp.minus(273)
+
+        return intTemp.toBigDecimal().setScale(1,RoundingMode.UP).toDouble()
     }
+
 
     private fun updateUI(id: Int) {
         binding.apply {
