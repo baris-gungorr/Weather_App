@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
 
     private val LOCATION_REQUEST_CODE =101
 
-    private val apiKey = "YOUR_API_KEY"
+    private val apiKey = "c93b5071758719941ae4a9cec26c918f"
 
 
     @RequiresApi(Build.VERSION_CODES.O)
