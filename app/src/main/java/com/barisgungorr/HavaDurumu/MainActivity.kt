@@ -101,44 +101,15 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
-/*
-    private fun getCityWeather(city:String) {
-        binding.progressBar.visibility = View.VISIBLE
-
-        ApıUtilities.getApiInterface()?.getCityWeatherData(city,apiKey)?.enqueue(
-            object : Callback<WeatherModel>{
-                @RequiresApi(Build.VERSION_CODES.O)
-                override fun onResponse(
-                    call: Call<WeatherModel>,
-                    response: Response<WeatherModel>
-                ) {
-                    if (response.isSuccessful) {
-                        binding.progressBar.visibility = View.GONE
-                       response.body()?.let {
-                           setData(it)
-                       }
-                    }
-                    else{
-                        Toast.makeText(this@MainActivity,"Şehir bulunamadı!",Toast.LENGTH_LONG).show()
-                        binding .progressBar.visibility = View.GONE
-                    }
-                }
-                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
-                    TODO("Not yet implemented")
-                }
-            }
-        )
-    }
-*/
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun getCityWeather(city: String) {
         binding.progressBar.visibility = View.VISIBLE
 
-        // Coroutine Scope oluştur
+
         val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-        // Coroutine başlat
+
         coroutineScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
@@ -156,11 +127,10 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                // Hata durumunda işlemleri yönet
+
             }
         }
     }
-
 
     private fun fetchCurrentLocationWeather(latitude:String,longitude:String) {
 
@@ -185,7 +155,6 @@ class MainActivity : AppCompatActivity() {
 
             })
     }
-
 
     private fun getCurrentLocation() {
 
@@ -235,7 +204,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     private fun requestPermission() {
 
         ActivityCompat.requestPermissions(
@@ -267,7 +235,6 @@ class MainActivity : AppCompatActivity() {
 
         }
         return false
-
     }
 
     override fun onRequestPermissionsResult(
@@ -301,9 +268,6 @@ class MainActivity : AppCompatActivity() {
              minTemp.text = "Min ${f2c(body?.main?.temp_min!!)}°"
              temp.text = "${f2c(body?.main?.temp!!)}°"
 
-
-
-
             weatherTitle.text =  getTurkishWeather(body.weather[0].main)
 
 
@@ -315,7 +279,6 @@ class MainActivity : AppCompatActivity() {
 
             tempFValue.text = ""
 
-
             citySearch.setText(body.name)
             temp.text = String.format("%.1f°C", f2c(body?.main?.temp!!))
 
@@ -323,7 +286,6 @@ class MainActivity : AppCompatActivity() {
             groundValue.text = body.main.grnd_level.toString()
             seaValue.text = body.main.sea_level.toString()
             countryValue.text = body.sys.country
-
 
         }
         updateUI(body.weather[0].id)
@@ -343,7 +305,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     @RequiresApi(Build.VERSION_CODES.O)
     private  fun ts2td(ts:Long): String{
 
@@ -362,7 +323,6 @@ class MainActivity : AppCompatActivity() {
         val celsiusTemp = t - 273.15
         return celsiusTemp.toBigDecimal().setScale(1, RoundingMode.UP).toDouble()
     }
-
 
     private fun updateUI(id: Int) {
         binding.apply {
@@ -422,7 +382,6 @@ class MainActivity : AppCompatActivity() {
                         .getDrawable(this@MainActivity,R.drawable.atmosphere_bg)
 
                 }
-
                 //Clear
                 800 -> {
 
@@ -432,8 +391,6 @@ class MainActivity : AppCompatActivity() {
 
                     optionsLayout.background = ContextCompat
                         .getDrawable(this@MainActivity,R.drawable.clear_bg)
-
-
 
                 }
                 //Clouds
@@ -455,11 +412,9 @@ class MainActivity : AppCompatActivity() {
                     optionsLayout.background = ContextCompat
                         .getDrawable(this@MainActivity,R.drawable.unknown_bg)
                 }
-
             }
         }
     }
-
 }
 
 
