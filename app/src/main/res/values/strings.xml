@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Weather_App</string>
+    <string name="app_name">Hava Durumu</string>
     <string name="max_temp">Max %1$.1f°</string>
     <string name="min_temp">Min %1$.1f°</string>
     <string name="current_temp">%1$.1f°</string>

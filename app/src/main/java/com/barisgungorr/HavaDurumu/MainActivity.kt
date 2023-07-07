@@ -33,6 +33,7 @@ import androidx.lifecycle.lifecycleScope
 import com.barisgungorr.service.WeatherApı
 import com.barisgungorr.weather_app.R
 import com.barisgungorr.weather_app.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private val LOCATION_REQUEST_CODE =101
 
     private val apiKey = "YOUR_API_KEY"
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,33 +129,39 @@ class MainActivity : AppCompatActivity() {
             }
         )
     }
- */
+*/
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun getCityWeather(city: String) {
         binding.progressBar.visibility = View.VISIBLE
 
-        lifecycleScope.launch {
+        // Coroutine Scope oluştur
+        val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+        // Coroutine başlat
+        coroutineScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
                     ApıUtilities.getApiInterface()?.getCityWeatherData(city, apiKey)?.execute()
                 }
-                if (response?.isSuccessful == true) {
-                    val body = response.body()
-                    body?.let {
-                        setData(it)
+
+                if (response != null && response.isSuccessful) {
+                    binding.progressBar.visibility = View.GONE
+                    val weatherModel = response.body()
+                    if (weatherModel != null) {
+                        setData(weatherModel)
                     }
                 } else {
                     Toast.makeText(this@MainActivity, "Şehir bulunamadı!", Toast.LENGTH_LONG).show()
+                    binding.progressBar.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "Bir hata oluştu!", Toast.LENGTH_LONG).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
+                // Hata durumunda işlemleri yönet
             }
         }
     }
-   /*
+
+
     private fun fetchCurrentLocationWeather(latitude:String,longitude:String) {
 
         ApıUtilities.getApiInterface()?.getCurrentWeatherData(latitude,longitude,apiKey)
@@ -177,32 +185,7 @@ class MainActivity : AppCompatActivity() {
 
             })
     }
-*/
-   private fun fetchCurrentLocationWeather(latitude: String, longitude: String) {
-       binding.progressBar.visibility = View.VISIBLE
 
-       lifecycleScope.launch {
-           try {
-               val response = withContext(Dispatchers.IO) {
-                   ApıUtilities.getApiInterface()?.getCurrentWeatherData(latitude, longitude, apiKey)?.execute()
-               }
-               if (response?.isSuccessful == true) {
-                   val body = response.body()
-                   body?.let {
-                       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                           setData(it)
-                       }
-                   }
-               } else {
-                   Toast.makeText(this@MainActivity, "Hava durumu verisi alınamadı!", Toast.LENGTH_LONG).show()
-               }
-           } catch (e: Exception) {
-               Toast.makeText(this@MainActivity, "Bir hata oluştu!", Toast.LENGTH_LONG).show()
-           } finally {
-               binding.progressBar.visibility = View.GONE
-           }
-       }
-   }
 
     private fun getCurrentLocation() {
 
