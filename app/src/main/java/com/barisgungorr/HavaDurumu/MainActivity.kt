@@ -1,54 +1,44 @@
-package com.barisgungorr.weather_app
+package com.barisgungorr.HavaDurumu
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
-import com.barisgungorr.service.ApıUtilities
+import com.barisgungorr.hava_durum_app.R
+import com.barisgungorr.hava_durum_app.databinding.ActivityMainBinding
 import com.barisgungorr.model.WeatherModel
-
+import com.barisgungorr.service.ApıUtilities
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import android.provider.Settings
-import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.content.ContextCompat
-import androidx.core.location.LocationManagerCompat.getCurrentLocation
-import androidx.core.location.LocationManagerCompat.isLocationEnabled
-import androidx.lifecycle.lifecycleScope
-import com.barisgungorr.service.WeatherApı
-import com.barisgungorr.weather_app.R
-import com.barisgungorr.weather_app.databinding.ActivityMainBinding
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Dispatcher
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -65,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        binding= DataBindingUtil.setContentView(this,R.layout.activity_main)
+        binding= DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
 
@@ -157,51 +147,67 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCurrentLocation() {
-
         if (checkPermissions()) {
-        if (isLocationEnabled()) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-            )!=PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-            )!=PackageManager.PERMISSION_GRANTED
-
-            ) {
-                requestPermission()
-
-                return
-            }
-
-            fusedLocationProvider.lastLocation
-                .addOnSuccessListener {location ->
-
-                     if (location != null) {
-
-                         currentLocation = location
-
-                         binding.progressBar.visibility = View.VISIBLE
-
-                         fetchCurrentLocationWeather(
-                             location.latitude.toString(),
-                             location.longitude.toString()
-                         )
-                     }
+            if (isLocationEnabled()) {
+                if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermission()
+                    return
                 }
-        }
 
-            else {
-                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-            startActivity(intent)
-
-        }
-        }
-
-        else{
-
+                fusedLocationProvider.lastLocation
+                    .addOnSuccessListener { location ->
+                        if (location != null) {
+                            currentLocation = location
+                            binding.progressBar.visibility = View.VISIBLE
+                            fetchCurrentLocationWeather(
+                                location.latitude.toString(),
+                                location.longitude.toString()
+                            )
+                        }
+                    }
+            } else {
+                showLocationSettingsConfirmationDialog()
+            }
+        } else {
             requestPermission()
         }
+    }
+
+    private fun showLocationSettingsConfirmationDialog() {
+        val alertDialogBuilder = AlertDialog.Builder(this)
+        alertDialogBuilder.setTitle("Konum Kapalı")
+        alertDialogBuilder.setMessage("Konum ayarlarınız kapalı. Konum bilgisine ihtiyacım var. Ayarlara gitmek ister misiniz?")
+        alertDialogBuilder.setPositiveButton("Evet") { _, _ ->
+            // Open location settings
+            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            startActivity(intent)
+        }
+        alertDialogBuilder.setNegativeButton("Hayır") { dialog, _ ->
+            dialog.dismiss()
+            showLocationSettingsSnackbar()
+        }
+        alertDialogBuilder.show()
+    }
+
+    private fun showLocationSettingsSnackbar() {
+        Snackbar.make(
+            binding.root,
+            "Konum ayarlarınız kapalı. Konum bilgisine ihtiyacım var.",
+            Snackbar.LENGTH_LONG
+        )
+            .setAction("Ayarlar Git") {
+
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(intent)
+            }
+            .show()
     }
 
     private fun requestPermission() {
@@ -209,14 +215,14 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(
             this,
             arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION),
+                Manifest.permission.ACCESS_FINE_LOCATION),
             LOCATION_REQUEST_CODE
         )
     }
 
     private fun isLocationEnabled(): Boolean {
         val locationManager: LocationManager = getSystemService(Context.LOCATION_SERVICE)
-        as LocationManager
+                as LocationManager
 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 ||locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
@@ -226,10 +232,10 @@ class MainActivity : AppCompatActivity() {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
-        )== PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+            )== PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-        )== PackageManager.PERMISSION_GRANTED) {
+            )== PackageManager.PERMISSION_GRANTED) {
 
             return true
 
@@ -254,19 +260,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun setData(body:WeatherModel) {
 
-         binding.apply {
+        binding.apply {
             val currentDate = SimpleDateFormat("dd/MM/yyyy hh:mm", Locale("tr","TR")).format(Date())
 
             dateTime.text = currentDate.toString()
 
 
-             maxTemp.text = "Max ${f2c(body?.main?.temp_max!!)}°"
-             minTemp.text = "Min ${f2c(body?.main?.temp_min!!)}°"
-             temp.text = "${f2c(body?.main?.temp!!)}°"
+            maxTemp.text = "Max ${f2c(body?.main?.temp_max!!)}°"
+            minTemp.text = "Min ${f2c(body?.main?.temp_min!!)}°"
+            temp.text = "${f2c(body?.main?.temp!!)}°"
 
             weatherTitle.text =  getTurkishWeather(body.weather[0].main)
 
@@ -328,47 +333,49 @@ class MainActivity : AppCompatActivity() {
         binding.apply {
 
             when(id) {
-              // ThunderStorm
+                // ThunderStorm
                 in 200..232 -> {
-                  weatherImg.setImageResource(R.drawable.ic_storm_weather)
+                    weatherImg.setImageResource(R.drawable.ic_storm_weather)
 
-                mainLayout.background = ContextCompat
-                    .getDrawable(this@MainActivity,R.drawable.thunderstrom_bg)
+                    mainLayout.background = ContextCompat
+                        .getDrawable(this@MainActivity, R.drawable.thunderstrom_bg)
 
-                optionsLayout.background = ContextCompat
-                    .getDrawable(this@MainActivity,R.drawable.thunderstrom_bg)
+                    optionsLayout.background = ContextCompat
+                        .getDrawable(this@MainActivity, R.drawable.thunderstrom_bg)
 
-              }
+                }
                 //Drizzle
                 in 300..321 -> {
                     weatherImg.setImageResource(R.drawable.ic_few_clouds)
 
-                mainLayout.background=ContextCompat
-                    .getDrawable(this@MainActivity,R.drawable.drizzle_bg)
+                    mainLayout.background=ContextCompat
+                        .getDrawable(this@MainActivity, R.drawable.drizzle_bg)
 
-                optionsLayout.background = ContextCompat
-                    .getDrawable(this@MainActivity,R.drawable.drizzle_bg)
+                    optionsLayout.background = ContextCompat
+                        .getDrawable(this@MainActivity, R.drawable.drizzle_bg)
 
                 }
                 //Rain
                 in 500..531 -> {
                     weatherImg.setImageResource(R.drawable.ic_rainy_weather)
 
-                    mainLayout.background = ContextCompat.getDrawable(this@MainActivity,R.drawable.rain_bg)
+                    mainLayout.background = ContextCompat.getDrawable(this@MainActivity,
+                        R.drawable.rain_bg
+                    )
 
                     optionsLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.rain_bg)
+                        .getDrawable(this@MainActivity, R.drawable.rain_bg)
                 }
-               //Snow
+                //Snow
                 in 600..622 -> {
                     weatherImg.setImageResource(R.drawable.ic_snow_weather)
 
                     mainLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.snow_bg)
+                        .getDrawable(this@MainActivity, R.drawable.snow_bg)
 
 
                     optionsLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.snow_bg)
+                        .getDrawable(this@MainActivity, R.drawable.snow_bg)
 
                 }
                 //Atmosphere
@@ -376,10 +383,10 @@ class MainActivity : AppCompatActivity() {
                     weatherImg.setImageResource(R.drawable.ic_broken_clouds)
 
                     mainLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.atmosphere_bg)
+                        .getDrawable(this@MainActivity, R.drawable.atmosphere_bg)
 
                     optionsLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.atmosphere_bg)
+                        .getDrawable(this@MainActivity, R.drawable.atmosphere_bg)
 
                 }
                 //Clear
@@ -387,10 +394,10 @@ class MainActivity : AppCompatActivity() {
 
                     weatherImg.setImageResource(R.drawable.ic_clear_day)
                     mainLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.clear_bg)
+                        .getDrawable(this@MainActivity, R.drawable.clear_bg)
 
                     optionsLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.clear_bg)
+                        .getDrawable(this@MainActivity, R.drawable.clear_bg)
 
                 }
                 //Clouds
@@ -398,25 +405,24 @@ class MainActivity : AppCompatActivity() {
                     weatherImg.setImageResource(R.drawable.ic_cloudy_weather)
 
                     mainLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.clouds_bg)
+                        .getDrawable(this@MainActivity, R.drawable.clouds_bg)
 
                     optionsLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.clouds_bg)
+                        .getDrawable(this@MainActivity, R.drawable.clouds_bg)
                 }
                 else -> {
                     weatherImg.setImageResource(R.drawable.ic_unknown)
 
                     mainLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.unknown_bg)
+                        .getDrawable(this@MainActivity, R.drawable.unknown_bg)
 
                     optionsLayout.background = ContextCompat
-                        .getDrawable(this@MainActivity,R.drawable.unknown_bg)
+                        .getDrawable(this@MainActivity, R.drawable.unknown_bg)
                 }
             }
         }
     }
 }
-
 
 
 

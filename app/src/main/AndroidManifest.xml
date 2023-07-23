@@ -20,7 +20,7 @@
         android:theme="@style/Theme.Weather_App"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name="com.barisgungorr.HavaDurumu.MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>
