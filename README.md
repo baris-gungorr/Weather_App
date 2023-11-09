@@ -63,8 +63,13 @@ plugins {
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
+
 ```
 
 👇 API
 
 - (https://openweathermap.org/)
+
+🔗 Play Store Link
+
+ Download: [Play Store'dan indir]( https://play.google.com/store/apps/details?id=com.barisgungorr.weather_app).
