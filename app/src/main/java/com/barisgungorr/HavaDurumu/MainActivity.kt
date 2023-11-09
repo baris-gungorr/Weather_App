@@ -10,6 +10,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -23,7 +24,7 @@ import androidx.databinding.DataBindingUtil
 import com.barisgungorr.hava_durum_app.R
 import com.barisgungorr.hava_durum_app.databinding.ActivityMainBinding
 import com.barisgungorr.model.WeatherModel
-import com.barisgungorr.service.ApıUtilities
+import com.barisgungorr.service.ApiUtil
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.snackbar.Snackbar
@@ -45,9 +46,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var currentLocation: Location
     private lateinit var fusedLocationProvider: FusedLocationProviderClient
 
-    private val LOCATION_REQUEST_CODE =101
+    private val LOCATION_REQUEST_CODE = 101
 
-    private val apiKey = "YOUR_API_KEY"
+    private val apiKey = "c93b5071758719941ae4a9cec26c918f"
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -55,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        binding= DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
 
@@ -78,15 +79,13 @@ class MainActivity : AppCompatActivity() {
                     binding.citySearch.clearFocus()
                 }
                 return@setOnEditorActionListener true
-            }
-
-            else{
+            } else {
 
                 return@setOnEditorActionListener false
 
             }
         }
-        binding.currentLocation.setOnClickListener{
+        binding.currentLocation.setOnClickListener {
             getCurrentLocation()
 
         }
@@ -103,7 +102,7 @@ class MainActivity : AppCompatActivity() {
         coroutineScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
-                    ApıUtilities.getApiInterface()?.getCityWeatherData(city, apiKey)?.execute()
+                    ApiUtil.getApiInterface()?.getCityWeatherData(city, apiKey)?.execute()
                 }
 
                 if (response != null && response.isSuccessful) {
@@ -113,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                         setData(weatherModel)
                     }
                 } else {
-                    Toast.makeText(this@MainActivity, "Şehir bulunamadı!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Country not found!", Toast.LENGTH_LONG).show()
                     binding.progressBar.visibility = View.GONE
                 }
             } catch (e: Exception) {
@@ -122,10 +121,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun fetchCurrentLocationWeather(latitude:String,longitude:String) {
+    private fun fetchCurrentLocationWeather(latitude: String, longitude: String) {
 
-        ApıUtilities.getApiInterface()?.getCurrentWeatherData(latitude,longitude,apiKey)
-            ?.enqueue(object : Callback<WeatherModel>{
+        ApiUtil.getApiInterface()?.getCurrentWeatherData(latitude, longitude, apiKey)
+            ?.enqueue(object : Callback<WeatherModel> {
                 @RequiresApi(Build.VERSION_CODES.O)
                 override fun onResponse(
                     call: Call<WeatherModel>,
@@ -136,11 +135,10 @@ class MainActivity : AppCompatActivity() {
                         response.body()?.let {
                             setData(it)
                         }
-
                     }
                 }
                 override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
-                    TODO("Not yet implemented")
+                    Log.e("ERROR","ERROR")
                 }
 
             })
@@ -182,14 +180,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun showLocationSettingsConfirmationDialog() {
         val alertDialogBuilder = AlertDialog.Builder(this)
-        alertDialogBuilder.setTitle("Konum Kapalı")
-        alertDialogBuilder.setMessage("Konum ayarlarınız kapalı. Konum bilgisine ihtiyacım var. Ayarlara gitmek ister misiniz?")
+        alertDialogBuilder.setTitle("Location closed")
+        alertDialogBuilder.setMessage("Your location settings are turned off. I need location information. Do you want to go to settings")
         alertDialogBuilder.setPositiveButton("Evet") { _, _ ->
             // Open location settings
             val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
             startActivity(intent)
         }
-        alertDialogBuilder.setNegativeButton("Hayır") { dialog, _ ->
+        alertDialogBuilder.setNegativeButton("No") { dialog, _ ->
             dialog.dismiss()
             showLocationSettingsSnackbar()
         }
@@ -199,10 +197,10 @@ class MainActivity : AppCompatActivity() {
     private fun showLocationSettingsSnackbar() {
         Snackbar.make(
             binding.root,
-            "Konum ayarlarınız kapalı. Konum bilgisine ihtiyacım var.",
+            "Your location features are turned off. You need location information.",
             Snackbar.LENGTH_LONG
         )
-            .setAction("Ayarlar Git") {
+            .setAction("Go to settings") {
 
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 startActivity(intent)
@@ -214,8 +212,10 @@ class MainActivity : AppCompatActivity() {
 
         ActivityCompat.requestPermissions(
             this,
-            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION),
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ),
             LOCATION_REQUEST_CODE
         )
     }
@@ -225,20 +225,19 @@ class MainActivity : AppCompatActivity() {
                 as LocationManager
 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-                ||locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+                || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
 
-    private fun checkPermissions(): Boolean{
+    private fun checkPermissions(): Boolean {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
-            )== PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            )== PackageManager.PERMISSION_GRANTED) {
-
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             return true
-
         }
         return false
     }
@@ -251,43 +250,42 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == LOCATION_REQUEST_CODE) {
 
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getCurrentLocation()
-
-            }
-            else{
 
             }
         }
     }
+
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun setData(body:WeatherModel) {
+    private fun setData(body: WeatherModel) {
 
         binding.apply {
-            val currentDate = SimpleDateFormat("dd/MM/yyyy hh:mm", Locale("tr","TR")).format(Date())
+            val currentDate =
+                SimpleDateFormat("dd/MM/yyyy hh:mm", Locale("tr", "TR")).format(Date())
 
             dateTime.text = currentDate.toString()
 
 
-            maxTemp.text = "Max ${f2c(body?.main?.temp_max!!)}°"
+            maxTemp.text = "Max ${f2c(body.main?.temp_max!!)}°"
             minTemp.text = "Min ${f2c(body?.main?.temp_min!!)}°"
             temp.text = "${f2c(body?.main?.temp!!)}°"
 
-            weatherTitle.text =  getTurkishWeather(body.weather[0].main)
+            weatherTitle.text = getTurkishWeather(body.weather[0].main)
 
 
             sunriseValue.text = ts2td(body.sys.sunrise.toLong())
             sunsetValue.text = ts2td(body.sys.sunset.toLong())
 
             pressureValue.text = body.main.pressure.toString()
-            humidityValue.text = body.main.humidity.toString()+"%"
+            humidityValue.text = body.main.humidity.toString() + "%"
 
             tempFValue.text = ""
 
             citySearch.setText(body.name)
             temp.text = String.format("%.1f°C", f2c(body?.main?.temp!!))
 
-            windValue.text = body.wind.speed.toString()+"m/s"
+            windValue.text = body.wind.speed.toString() + "m/s"
             groundValue.text = body.main.grnd_level.toString()
             seaValue.text = body.main.sea_level.toString()
             countryValue.text = body.sys.country
@@ -295,7 +293,8 @@ class MainActivity : AppCompatActivity() {
         }
         updateUI(body.weather[0].id)
     }
-    private  fun getTurkishWeather(condition: String): String {
+
+    private fun getTurkishWeather(condition: String): String {
         return when (condition) {
             "Clouds" -> "Bulutlu"
             "Clear" -> "Açık"
@@ -311,7 +310,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private  fun ts2td(ts:Long): String{
+    private fun ts2td(ts: Long): String {
 
         val utcTime = SimpleDateFormat("HH:mm", Locale.getDefault())
         utcTime.timeZone = TimeZone.getTimeZone("UTC")
@@ -323,7 +322,7 @@ class MainActivity : AppCompatActivity() {
         return localTime.format(date)
     }
 
-    private fun f2c(t:Double):Double {
+    private fun f2c(t: Double): Double {
 
         val celsiusTemp = t - 273.15
         return celsiusTemp.toBigDecimal().setScale(1, RoundingMode.UP).toDouble()
@@ -332,7 +331,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateUI(id: Int) {
         binding.apply {
 
-            when(id) {
+            when (id) {
                 // ThunderStorm
                 in 200..232 -> {
                     weatherImg.setImageResource(R.drawable.ic_storm_weather)
@@ -348,7 +347,7 @@ class MainActivity : AppCompatActivity() {
                 in 300..321 -> {
                     weatherImg.setImageResource(R.drawable.ic_few_clouds)
 
-                    mainLayout.background=ContextCompat
+                    mainLayout.background = ContextCompat
                         .getDrawable(this@MainActivity, R.drawable.drizzle_bg)
 
                     optionsLayout.background = ContextCompat
@@ -359,7 +358,8 @@ class MainActivity : AppCompatActivity() {
                 in 500..531 -> {
                     weatherImg.setImageResource(R.drawable.ic_rainy_weather)
 
-                    mainLayout.background = ContextCompat.getDrawable(this@MainActivity,
+                    mainLayout.background = ContextCompat.getDrawable(
+                        this@MainActivity,
                         R.drawable.rain_bg
                     )
 
@@ -401,7 +401,7 @@ class MainActivity : AppCompatActivity() {
 
                 }
                 //Clouds
-                in  801..804 -> {
+                in 801..804 -> {
                     weatherImg.setImageResource(R.drawable.ic_cloudy_weather)
 
                     mainLayout.background = ContextCompat
@@ -410,6 +410,7 @@ class MainActivity : AppCompatActivity() {
                     optionsLayout.background = ContextCompat
                         .getDrawable(this@MainActivity, R.drawable.clouds_bg)
                 }
+
                 else -> {
                     weatherImg.setImageResource(R.drawable.ic_unknown)
 
