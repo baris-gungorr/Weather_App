@@ -66,10 +66,15 @@ plugins {
 
 ```
 
+```groovy
+
 👇 API
 
 - (https://openweathermap.org/)
+```
+```groovy
 
 🔗 Play Store Link
 
  Download: [Play Store'dan indir]( https://play.google.com/store/apps/details?id=com.barisgungorr.weather_app).
+```
