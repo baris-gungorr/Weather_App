@@ -7,4 +7,24 @@
     <string name="temperature_f">%1$.1f°</string>
     <string name="feels_like_temperature">%1$.1f°</string>
     <string name="wind_speed">%1$s m/s</string>
+
+    <string name="main_enter_location">Enter location</string>
+    <string name="main_default_number">100</string>
+    <string name="main_pressure_value">Pressure</string>
+    <string name="main_humidity_value">Humidity</string>
+    <string name="main_wind_value">Wind Speed</string>
+    <string name="main_sunrise">Sunrise</string>
+    <string name="main_sunset">Sunset</string>
+    <string name="main_temp">C°</string>
+    <string name="main_ground_level">Ground Level</string>
+    <string name="main_sea_level">Sea Level</string>
+    <string name="main_country">Country</string>
+    <string name="main_time">Time</string>
+    <string name="main_min_temp">Min Temp</string>
+    <string name="main_max_temp">Max Temp</string>
+    <string name="main_felt_temp">Felt temperature</string>
+    <string name="main_weather_forecast">Weather forecast</string>
+
+
+
 </resources>

@@ -1,4 +1,4 @@
-package com.barisgungorr.HavaDurumu
+package com.barisgungorr.WeatherApp
 
 import org.junit.Test
 
