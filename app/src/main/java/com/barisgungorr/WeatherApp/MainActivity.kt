@@ -1,7 +1,6 @@
 package com.barisgungorr.WeatherApp
 
 import android.Manifest
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,7 +9,6 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -28,11 +26,9 @@ import com.barisgungorr.service.Constants.LOCATION_REQUEST_CODE
 import com.barisgungorr.service.Constants.apiKey
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,92 +46,117 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(R.layout.activity_main)
 
+        setupBinding()
+        setupNightMode()
+        setupLocationProvider()
+        setupCitySearch()
+        setupCurrentLocationButton()
+    }
 
+    private fun setupBinding() {
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(R.layout.activity_main)
+    }
 
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+    private fun setupNightMode() {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+    }
 
+    private fun setupLocationProvider() {
         fusedLocationProvider = LocationServices.getFusedLocationProviderClient(this)
-
         getCurrentLocation()
+    }
 
-        binding.citySearch.setOnEditorActionListener { textView, i, keyEvent ->
-            if (i == EditorInfo.IME_ACTION_SEARCH) {
-                getCityWeather(binding.citySearch.text.toString())
-
-                val view = this.currentFocus
-
-                if (view != null) {
-                    val inm: InputMethodManager =
-                        getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-
-                    inm.hideSoftInputFromWindow(view.windowToken, 0)
-
-                    binding.citySearch.clearFocus()
-                }
+    private fun setupCitySearch() {
+        binding.citySearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                performCitySearch()
                 return@setOnEditorActionListener true
-            } else {
-                return@setOnEditorActionListener false
             }
-        }
-        binding.currentLocation.setOnClickListener {
-            getCurrentLocation()
+            return@setOnEditorActionListener false
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    private fun setupCurrentLocationButton() {
+        binding.currentLocation.setOnClickListener { getCurrentLocation() }
+    }
+
+    private fun performCitySearch() {
+        getCityWeather(binding.citySearch.text.toString())
+        hideKeyboard()
+        binding.citySearch.clearFocus()
+    }
+
+    private fun hideKeyboard() {
+        val view = this.currentFocus
+        if (view != null) {
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+    }
+
     private fun getCityWeather(city: String) {
+
         binding.progressBar.visibility = View.VISIBLE
 
-        val coroutineScope = CoroutineScope(Dispatchers.Main)
+        ApiUtil.apiInterface()?.getCityWeatherData(city, apiKey)
+            ?.enqueue(object : Callback<WeatherModel> {
+                @RequiresApi(Build.VERSION_CODES.O)
+                override fun onResponse(
+                    call: Call<WeatherModel>,
+                    response: Response<WeatherModel>
+                ) {
+                    if (response.isSuccessful) {
 
-        coroutineScope.launch {
-            try {
-                val response = withContext(Dispatchers.IO) {
-                    ApiUtil.apiInterface.getCityWeatherData(city, apiKey)
-                }
-
-                if (response.isSuccessful) {
-                    binding.progressBar.visibility = View.GONE
-                    val weatherModel = response.body()
-                    if (weatherModel != null) {
-                        setData(weatherModel)
+                        binding.progressBar.visibility = View.GONE
+                        response.body()?.let {
+                            setData(it)
+                        }
+                    } else {
+                        Toast.makeText(this@MainActivity, "No City Found", Toast.LENGTH_SHORT)
+                            .show()
+                        binding.progressBar.visibility = View.GONE
                     }
-                } else {
-                    Toast.makeText(this@MainActivity, "Country not found!", Toast.LENGTH_LONG)
-                        .show()
+                }
+
+                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
+
+                }
+            }
+            )
+    }
+
+    private fun fetchCurrentLocationWeather(latitude: String, longitude: String) {
+
+        ApiUtil.apiInterface()?.getCurrentWeatherData(latitude, longitude, apiKey)
+            ?.enqueue(object : Callback<WeatherModel> {
+                @RequiresApi(Build.VERSION_CODES.O)
+                override fun onResponse(
+                    call: Call<WeatherModel>,
+                    response: Response<WeatherModel>
+                ) {
+
+                    if (response.isSuccessful) {
+                        binding.progressBar.visibility = View.GONE
+
+                        response.body()?.let {
+                            setData(it)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
                     binding.progressBar.visibility = View.GONE
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+            })
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun fetchCurrentLocationWeather(latitude: String, longitude: String) {
-        try {
-            val response = withContext(Dispatchers.IO) {
-                ApiUtil.apiInterface.getCurrentWeatherData(latitude, longitude, apiKey)
-            }
-
-            if (response.isSuccessful) {
-                binding.progressBar.visibility = View.GONE
-                val weatherModel = response.body()
-                if (weatherModel != null) {
-                    setData(weatherModel)
-                }
-            } else {
-                Log.e("ERROR", "ERROR")
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun getCurrentLocation() {
+
         if (checkPermissions()) {
+
             if (isLocationEnabled()) {
+
                 if (ActivityCompat.checkSelfPermission(
                         this,
                         Manifest.permission.ACCESS_FINE_LOCATION
@@ -145,58 +166,31 @@ class MainActivity : AppCompatActivity() {
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
                     requestPermission()
+
                     return
                 }
-
                 fusedLocationProvider.lastLocation
                     .addOnSuccessListener { location ->
                         if (location != null) {
                             currentLocation = location
+
                             binding.progressBar.visibility = View.VISIBLE
-                            CoroutineScope(Dispatchers.Main).launch {
-                                fetchCurrentLocationWeather(
-                                    location.latitude.toString(),
-                                    location.longitude.toString()
-                                )
-                            }
+
+                            fetchCurrentLocationWeather(
+                                location.latitude.toString(),
+                                location.longitude.toString()
+                            )
                         }
                     }
+
             } else {
-                showLocationSettingsConfirmationDialog()
-            }
-        } else {
-            requestPermission()
-        }
-    }
-
-    private fun showLocationSettingsConfirmationDialog() {
-        val alertDialogBuilder = AlertDialog.Builder(this)
-        alertDialogBuilder.setTitle("Location closed")
-        alertDialogBuilder.setMessage("Your location settings are turned off. I need location information. Do you want to go to settings")
-        alertDialogBuilder.setPositiveButton("Yes") { _, _ ->
-
-            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-            startActivity(intent)
-        }
-        alertDialogBuilder.setNegativeButton("No") { dialog, _ ->
-            dialog.dismiss()
-            showLocationSettingSnackbar()
-        }
-        alertDialogBuilder.show()
-    }
-
-    private fun showLocationSettingSnackbar() {
-        Snackbar.make(
-            binding.root,
-            "Your location features are turned off. You need location information.",
-            Snackbar.LENGTH_LONG
-        )
-            .setAction("Go to settings") {
 
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 startActivity(intent)
             }
-            .show()
+        } else {
+            requestPermission()
+        }
     }
 
     private fun requestPermission() {
@@ -212,6 +206,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isLocationEnabled(): Boolean {
+
         val locationManager: LocationManager = getSystemService(Context.LOCATION_SERVICE)
                 as LocationManager
 
@@ -220,13 +215,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissions(): Boolean {
-        return ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+
+        return (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED)
+
     }
 
     override fun onRequestPermissionsResult(
@@ -236,13 +230,13 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == LOCATION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    getCurrentLocation()
-                } else {
-                    // api 29 altı işlemini yaz
 
-                }
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                getCurrentLocation()
+
+            } else {
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -275,11 +269,9 @@ class MainActivity : AppCompatActivity() {
             groundValue.text = body.main.grnd_level.toString()
             seaValue.text = body.main.sea_level.toString()
             countryValue.text = body.sys.country
-
         }
         updateUI(body.weather[0].id)
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun ts2td(ts: Long): String {

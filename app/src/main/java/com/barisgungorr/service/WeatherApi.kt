@@ -10,15 +10,15 @@ import retrofit2.Response
 interface WeatherApi {
 
     @GET("weather")
-    suspend fun getCurrentWeatherData(
+     fun getCurrentWeatherData(
         @Query("lat") lat: String,
         @Query("lon") lon: String,
         @Query("APPID") appid: String
-    ): Response<WeatherModel>
+    ): Call<WeatherModel>
 
     @GET("weather")
-    suspend fun getCityWeatherData(
+     fun getCityWeatherData(
         @Query("q") q: String,
         @Query("APPID") appid: String
-    ): Response<WeatherModel>
+    ): Call<WeatherModel>
 }

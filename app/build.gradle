@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace 'com.barisgungorr.hava_durum_app'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.barisgungorr.weather_app"
         minSdk 24
-        targetSdk 33
+        targetSdk 34
         versionCode 3
         versionName "3.0"
 
